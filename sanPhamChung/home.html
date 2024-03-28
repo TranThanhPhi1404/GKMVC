@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Products</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        input[type=text] {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Manage Products</h2>
+    
+    <div id="addProductInputs" style="display: none;">
+        <input type="text" id="addMasp" placeholder="Mã SP">
+        <input type="text" id="addTensp" placeholder="Tên SP">
+        <input type="text" id="addNgaysx" placeholder="Ngày SX (yyyy-mm-dd)">
+        <input type="text" id="addNgayhethan" placeholder="Ngày hết hạn (yyyy-mm-dd)">
+        <input type="text" id="addNoisx" placeholder="Nơi SX">
+    </div>
+    <button onclick="toggleAddProduct()">Add show</button>
+    <button onclick="addProduct()">Add Product</button>
+
+    <h3>Search Products</h3>
+    <input type="text" id="searchInput" placeholder="Search for products..." onkeypress="searchProduct(event)">
+
+    <h3>Products List</h3>
+    <button onclick="getAllProducts()">Show All Products</button>
+    <table>
+        <thead>
+            <tr>
+                <th>Mã SP</th>
+                <th>Tên SP</th>
+                <th>Ngày SX</th>
+                <th>Ngày hết hạn</th>
+                <th>Nơi SX</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+
+    <div id="editProductInputs" style="display: none;">
+        <input type="text" id="editMasp" placeholder="Mã SP" readonly>
+        <input type="text" id="editTensp" placeholder="Tên SP">
+        <input type="text" id="editNgaysx" placeholder="Ngày SX (yyyy-mm-dd)">
+        <input type="text" id="editNgayhethan" placeholder="Ngày hết hạn (yyyy-mm-dd)">
+        <input type="text" id="editNoisx" placeholder="Nơi SX">
+    </div>
+    
+    <button onclick="updateProduct()">Edit</button>
+
+    <script>
+        const url = 'http://localhost:3000/products/';
+
+        function toggleAddProduct() {
+            const addProductInputs = document.getElementById('addProductInputs');
+            if (addProductInputs.style.display === 'none') {
+                addProductInputs.style.display = 'block';
+            } else {
+                addProductInputs.style.display = 'none';
+            }
+        }  
+
+        function toggleEditProduct() {
+            const editProductInputs = document.getElementById('editProductInputs');
+            if (editProductInputs.style.display === 'none') {
+                editProductInputs.style.display = 'block';
+            } else {
+                editProductInputs.style.display = 'none';
+            }
+        }
+
+        async function searchProduct(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('searchInput').value;
+
+                try {
+                    const response = await fetch(url + input, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.message === 'SUCCESS') {
+                        const product = data.data;
+                        const tbody = document.querySelector('#tbody');
+                        tbody.innerHTML = '';
+
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${product.MaSP}</td>
+                            <td>${product.TenSP}</td>
+                            <td>${new Date(product.NgaySX).toLocaleDateString()}</td>
+                            <td>${new Date(product.NgayHetHan).toLocaleDateString()}</td>
+                            <td>${product.NoiSX}</td>
+                            <td>
+                                <button onclick="deleteProduct('${product.MaSP}')">Delete</button>
+                                <button onclick="editProduct('${product.MaSP}')">Edit</button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    } else {
+                        alert("No product found with this ID.");
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch product data. Please try again later.", error);
+                    alert("Failed to fetch product data. Please try again later.");
+                }
+            }
+        }
+
+        async function getAllProducts() {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.message === 'SUCCESS') {
+                    const products = data.data;
+                    const tbody = document.querySelector('#tbody');
+                    tbody.innerHTML = '';
+
+                    products.forEach(product => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${product.MaSP}</td>
+                            <td>${product.TenSP}</td>
+                            <td>${new Date(product.NgaySX).toLocaleDateString()}</td>
+                            <td>${new Date(product.NgayHetHan).toLocaleDateString()}</td>
+                            <td>${product.NoiSX}</td>
+                            <td>
+                                <button onclick="deleteProduct('${product.MaSP}')">Delete</button>
+                                <button onclick="editProduct('${product.MaSP}')">Edit</button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    alert("No products found.");
+                }
+            } catch (error) {
+                console.error("Failed to fetch product data. Please try again later.", error);
+                alert("Failed to fetch product data. Please try again later.");
+            }
+        }
+
+        async function addProduct() {
+            const addMasp = document.getElementById('addMasp').value;
+            const addTensp = document.getElementById('addTensp').value;
+            const addNgaysx = document.getElementById('addNgaysx').value;
+            const addNgayhethan = document.getElementById('addNgayhethan').value;
+            const addNoisx = document.getElementById('addNoisx').value;
+
+            if (addMasp.trim() === '') {
+            alert("MaSP cannot be empty.");
+            return; // Dừng hàm
+            }
+            
+            const newProduct = {
+                MaSP: addMasp,
+                TenSP: addTensp,
+                NgaySX: addNgaysx,
+                NgayHetHan: addNgayhethan,
+                NoiSX: addNoisx
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newProduct)
+                });
+
+                const data = await response.json();
+
+                if (data.message === 'SUCCESS') {
+                    alert("Product added successfully.");
+                } else {
+                    alert("Failed to add product.");
+                }
+            } catch (error) {
+                console.error("Failed to add product. Please try again later.", error);
+                alert("Failed to add product. Please try again later.");
+            }
+        }
+
+        async function deleteProduct(MaSP) {
+            try {
+                const response = await fetch(url + MaSP, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.message === 'SUCCESS') {
+                    alert("Product deleted successfully.");
+                } else {
+                    alert("Failed to delete product.");
+                }
+            } catch (error) {
+                console.error("Failed to delete product. Please try again later.", error);
+                alert("Failed to delete product. Please try again later.");
+            }
+        }
+
+        async function editProduct(MaSP) {
+            try {
+                const response = await fetch(url + MaSP, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.message === 'SUCCESS') {
+                    const product = data.data;
+                    document.getElementById('editMasp').value = product.MaSP;
+                    document.getElementById('editTensp').value = product.TenSP;
+                    document.getElementById('editNgaysx').value = new Date(product.NgaySX).toLocaleDateString();
+                    document.getElementById('editNgayhethan').value = new Date(product.NgayHetHan).toLocaleDateString();
+                    document.getElementById('editNoisx').value = product.NoiSX;
+                    toggleEditProduct(); // Hiển thị phần chỉnh sửa
+                } else {
+                    alert("Failed to fetch product for editing.");
+                }
+            } catch (error) {
+                console.error("Failed to fetch product data. Please try again later.", error);
+                alert("Failed to fetch product data. Please try again later.");
+            }
+        }
+
+        async function updateProduct() {
+            const editMasp = document.getElementById('editMasp').value;
+            const editTensp = document.getElementById('editTensp').value;
+            const editNgaysx = document.getElementById('editNgaysx').value;
+            const editNgayhethan = document.getElementById('editNgayhethan').value;
+            const editNoisx = document.getElementById('editNoisx').value;
+
+            const updatedProduct = {
+                TenSP: editTensp,
+                NgaySX: editNgaysx,
+                NgayHetHan: editNgayhethan,
+                NoiSX: editNoisx
+            };
+
+            try {
+                const response = await fetch(url + editMasp, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedProduct)
+                });
+
+                const data = await response.json();
+
+                if (data.message === 'SUCCESS') {
+                    alert("Product updated successfully.");
+                } else {
+                    alert("Failed to update product.");
+                }
+            } catch (error) {
+                console.error("Failed to update product. Please try again later.", error);
+                alert("Failed to update product. Please try again later.");
+            }
+        }
+    </script>
+
+</body>
+
+</html>
