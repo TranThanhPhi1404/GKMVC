@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Books</title>
+    <style>
+        
+        /* CSS styles */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    
+    </style>
+</head>
+
+<body>
+    <h2>Manage Books</h2>
+
+    <!-- Form for searching books -->
+    <h3>Search Books</h3>
+    <input type="text" id="searchInput" placeholder="Search for books..." onkeypress="searchBook(event)">
+    <button onclick="searchBook(event)">Search</button>
+    <button onclick="showAllBooks()">Show All Books</button>
+
+    <!-- Form for adding a new book -->
+    <h3>Add New Book</h3>
+    <input type="text" id="addMaSach" placeholder="Mã Sách">
+    <input type="text" id="addTenSach" placeholder="Tên Sách">
+    <input type="text" id="addNhaXuatBan" placeholder="Nhà Xuất Bản">
+    <input type="number" id="addSoTrang" placeholder="Số Trang">
+    <input type="number" id="addNamXuatBan" placeholder="Năm Xuất Bản">
+    <button onclick="addBook()">Add Book</button>
+
+    <!-- Form for editing a book -->
+    <h3>Edit Book</h3>
+    <input type="text" id="editMaSach" placeholder="Mã Sách" readonly>
+    <input type="text" id="editTenSach" placeholder="Tên Sách">
+    <input type="text" id="editNhaXuatBan" placeholder="Nhà Xuất Bản">
+    <input type="number" id="editSoTrang" placeholder="Số Trang">
+    <input type="number" id="editNamXuatBan" placeholder="Năm Xuất Bản">
+    <button onclick="updateBook()">Update Book</button>
+
+    <!-- Form for deleting a book -->
+    <h3>Delete Book</h3>
+    <input type="text" id="deleteMaSach" placeholder="Mã Sách">
+    <button onclick="deleteBook()">Delete Book</button>
+
+    <!-- Table to display books -->
+    <h3>Books List</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Mã Sách</th>
+                <th>Tên Sách</th>
+                <th>Nhà Xuất Bản</th>
+                <th>Số Trang</th>
+                <th>Năm Xuất Bản</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+
+    <!-- JavaScript -->
+    <script>
+        const url = 'http://localhost:3000/books/';
+
+        // Function to search for books
+        async function showAllBooks() {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (data.message === 'SUCCESS') {
+                    const books = data.data;
+                    const tbody = document.querySelector('#tbody');
+                    tbody.innerHTML = '';
+                    books.forEach(book => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${book.MaSach}</td>
+                            <td>${book.TenSach}</td>
+                            <td>${book.NhaXuatBan}</td>
+                            <td>${book.SoTrang}</td>
+                            <td>${book.NamXuatBan}</td>
+                            <td>
+                                <button onclick="deleteBook('${book.MaSach}')">Delete</button>
+                                <button onclick="editBook('${book.MaSach}')">Edit</button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    alert("Failed to fetch books.");
+                }
+            } catch (error) {
+                console.error("Failed to fetch book data. Please try again later.", error);
+                alert("Failed to fetch book data. Please try again later.");
+            }
+        }
+
+        async function searchBook(event) {
+            if (event.key === 'Enter' || event.type === 'click') {
+                const input = document.getElementById('searchInput').value;
+                try {
+                    const response = await fetch(url + input, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.message === 'SUCCESS') {
+                        displayBook(data.data);
+                    } else {
+                        alert("No book found with this ID.");
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch book data. Please try again later.", error);
+                    alert("Failed to fetch book data. Please try again later.");
+                }
+            }
+        }
+
+        // Function to add a new book
+        async function addBook() {
+        const addMaSach = document.getElementById('addMaSach').value;
+        const addTenSach = document.getElementById('addTenSach').value;
+        const addNhaXuatBan = document.getElementById('addNhaXuatBan').value;
+        const addSoTrang = document.getElementById('addSoTrang').value;
+        const addNamXuatBan = document.getElementById('addNamXuatBan').value;
+
+        // Kiểm tra nếu trường "Mã Sách" trống
+        if (!addMaSach.trim()) {
+            alert("Please enter a valid 'Mã Sách'.");
+            return; // Dừng thực hiện chức năng nếu trường "Mã Sách" trống
+        }
+
+        const newBook = {
+            MaSach: addMaSach,
+            TenSach: addTenSach,
+            NhaXuatBan: addNhaXuatBan,
+            SoTrang: addSoTrang,
+            NamXuatBan: addNamXuatBan
+        };
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newBook)
+            });
+            const data = await response.json();
+            if (data.message === 'SUCCESS') {
+                alert("Book added successfully.");
+            } else {
+                alert("Failed to add book.");
+            }
+        } catch (error) {
+            console.error("Failed to add book. Please try again later.", error);
+            alert("Failed to add book. Please try again later.");
+        }
+    }
+
+
+        // Function to display book details
+        function displayBook(book) {
+            const tbody = document.querySelector('#tbody');
+            tbody.innerHTML = '';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${book.MaSach}</td>
+                <td>${book.TenSach}</td>
+                <td>${book.NhaXuatBan}</td>
+                <td>${book.SoTrang}</td>
+                <td>${book.NamXuatBan}</td>
+                <td>
+                    <button onclick="deleteBook('${book.MaSach}')">Delete</button>
+                    <button onclick="editBook('${book.MaSach}')">Edit</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        // Function to delete a book
+        async function deleteBook() {
+            try {
+                const response = await fetch(url + MaSach, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (data.message === 'SUCCESS') {
+                    alert("Book deleted successfully.");
+                } else {
+                    alert("Failed to delete book.");
+                }
+            } catch (error) {
+                console.error("Failed to delete book. Please try again later.", error);
+                alert("Failed to delete book. Please try again later.");
+            }
+        }
+
+        // Function to edit a book
+        async function editBook(MaSach) {
+            try {
+                const response = await fetch(url + MaSach, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (data.message === 'SUCCESS') {
+                    const book = data.data;
+                    document.getElementById('editMaSach').value = book.MaSach;
+                    document.getElementById('editTenSach').value = book.TenSach;
+                    document.getElementById('editNhaXuatBan').value = book.NhaXuatBan;
+                    document.getElementById('editSoTrang').value = book.SoTrang;
+                    document.getElementById('editNamXuatBan').value = book.NamXuatBan;
+                } else {
+                    alert("Failed to fetch book for editing.");
+                }
+            } catch (error) {
+                console.error("Failed to fetch book data. Please try again later.", error);
+                alert("Failed to fetch book data. Please try again later.");
+            }
+        }
+
+        // Function to update a book
+        async function updateBook() {
+            const editMaSach = document.getElementById('editMaSach').value;
+            const editTenSach = document.getElementById('editTenSach').value;
+            const editNhaXuatBan = document.getElementById('editNhaXuatBan').value;
+            const editSoTrang = document.getElementById('editSoTrang').value;
+            const editNamXuatBan = document.getElementById('editNamXuatBan').value;
+
+            const updatedBook = {
+                TenSach: editTenSach,
+                NhaXuatBan: editNhaXuatBan,
+                SoTrang: editSoTrang,
+                NamXuatBan: editNamXuatBan
+            };
+
+            try {
+                const response = await fetch(url + editMaSach, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedBook)
+                });
+                const data = await response.json();
+                if (data.message === 'SUCCESS') {
+                    alert("Book updated successfully.");
+                } else {
+                    alert("Failed to update book.");
+                }
+            } catch (error) {
+                console.error("Failed to update book. Please try again later.", error);
+                alert("Failed to update book. Please try again later.");
+            }
+        }
+    </script>
+
+</body>
+
+</html>
